@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Consent</title>
+</head>
+<body>
+
+    <h1>Google Authentication</h1>
+
+    <p>Click the button below to initiate Google consent:</p>
+
+    <a href="#" id="initiateGoogleConsent">
+        <button>Initiate Google Consent</button>
+    </a>
+
+    <script>
+        document.getElementById('initiateGoogleConsent').addEventListener('click', function(event) {
+            event.preventDefault();
+
+            // Make a request to initiate Google consent and handle the response
+            fetch('http://localhost:8000/auth/google/initiate', {
+                credentials: 'include',
+                mode:"cors"  // Include session cookies
+            })
+            .then(response => {
+                    // Log information about included credentials
+                    console.log('Request Credentials:', response.url, response.type, response.headers.get('set-cookie'));
+
+                    return response.json();
+                })
+                .then(data => {
+                    console.log(data)
+                    
+                    // Redirect to the URL obtained from the response
+                    window.location.href = data.data;
+                })
+                .catch(error => {
+                    console.error('Error initiating Google consent:', error);
+                    // Handle error if needed
+                });
+        });
+    </script>
+    
+</body>
+</html>
