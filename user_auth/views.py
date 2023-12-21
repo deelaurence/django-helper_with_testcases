@@ -223,6 +223,7 @@ def reset_password(request):
         return Response({"credentials":"you registered with Google"},404)
     otp = secrets.token_urlsafe(20)
     user.otp=otp
+
     user.can_reset_password=True
     user.save()
     current_site = get_current_site(request)
@@ -247,12 +248,10 @@ def reset_password(request):
 @api_view(['GET'])
 def reset_password_confirm(request):
     token = request.GET.get('token', 'default_value')
-    print(token)
     if not User.objects.filter(otp=token).exists():
         return Response({"credentials":"token not found"},404)
 
     user = User.objects.get(otp=token).email
-    print(user)
     return redirect(f'http://127.0.0.1:5501/update_password.html?email={user}')
 
 @api_view(['POST'])
@@ -277,5 +276,4 @@ def update_password(request):
     user.save()
 
 
-    print(password,email)
-    return Response(password)
+    return Response({'message':'passsword updated'})

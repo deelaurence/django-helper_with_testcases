@@ -1,6 +1,7 @@
 import datetime
 from django.contrib.auth import get_user_model
 import json
+from django.urls import reverse
 from django.http import HttpResponseRedirect
 from rest_framework.response import Response
 from django.http import HttpResponseBadRequest
@@ -18,7 +19,7 @@ class VerifyEmailMiddleware:
         
 
         # Check if the request path is "/auth/api/token/"
-        if _request.path == "/auth/api/token/":
+        if _request.path == reverse('token_obtain_pair'):
             request_body = json.loads(_request.body.decode('utf-8'))
             user_email = request_body.get('email')
             
@@ -41,6 +42,7 @@ class VerifyEmailMiddleware:
                     }, status=400)
                     
                 else:
+                    response = self.get_response(request)
                     return response
         response = self.get_response(request)
         return response

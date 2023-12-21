@@ -5,7 +5,7 @@ Content-Type: application/json
     "first_name":"bn", 
     "last_name":"bn",
     "password": "bnnknjklkm", 
-    "email": "aloodunayo7@gmail.com" 
+    "email": "laurie143pelumi@gmail.com" 
 }
 ###
 GET http://localhost:8000/auth/google/initiate
@@ -24,16 +24,16 @@ POST http://127.0.0.1:8000/auth/verify/
 Content-Type: application/json
 
 {
-    "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzAyNDY3MjA3LCJpYXQiOjE3MDI0NjYzMDcsImp0aSI6ImVkMWZlMDk1NDZkYzQ2NDg4MjQ5ZjQ1ZWRhYmZiMmIwIiwidXNlcl9pZCI6ODF9.9Lwxm6InmrEdV2AGPPmODJfh_a4F5KBx-ek_ru4rNR8"
+    "token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzAzMTkzNTg2LCJpYXQiOjE3MDMxOTI2ODYsImp0aSI6ImQwZGE4MzhmYzQ2YzRmYzNiNWMyODk0ZjU4MThhMzg4IiwidXNlcl9pZCI6MTIzfQ.DAiZlgSplKbNEshfH8kbj9J-sd1gnd3wqrxZ3awYiQA"
 }
 
 ###
 
-POST http://127.0.0.1:8000/auth/api/token/refresh/
+POST http://127.0.0.1:8000/auth/token/refresh/
 Content-Type: application/json
 
 {
-    "refresh":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwMjQxMjU3NSwiaWF0IjoxNzAyMzI2MTc1LCJqdGkiOiJkYzk2MTQ2M2NlMTg0NmI2OWM5MTk5OThlYTMzNTVmYSIsInVzZXJfaWQiOjc2fQ.7caRLttVi38fAvTIjCZeBEf_ySS2SWvbA4XQQg8zOzo"
+    "refresh":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTcwMzI3OTA4NiwiaWF0IjoxNzAzMTkyNjg2LCJqdGkiOiIzNDY4OGVjMzQ4ZWQ0M2UyYTJkYTNlZTRhNTIwNjI2MyIsInVzZXJfaWQiOjEyM30.uZIYLgSbigvIws_Kcf06Ccv6Lun1DmCE5GZm6Vkefmc"
 }
 
 ###
@@ -41,7 +41,7 @@ Content-Type: application/json
 
 GET http://127.0.0.1:8000/auth/protected/
 Content-Type: application/json
-Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzAyNDY3MjA3LCJpYXQiOjE3MDI0NjYzMDcsImp0aSI6ImVkMWZlMDk1NDZkYzQ2NDg4MjQ5ZjQ1ZWRhYmZiMmIwIiwidXNlcl9pZCI6ODF9.9Lwxm6InmrEdV2AGPPmODJfh_a4F5KBx-ek_ru4rNR8
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzAzMTkzNTg2LCJpYXQiOjE3MDMxOTI2ODYsImp0aSI6ImQwZGE4MzhmYzQ2YzRmYzNiNWMyODk0ZjU4MThhMzg4IiwidXNlcl9pZCI6MTIzfQ.DAiZlgSplKbNEshfH8kbj9J-sd1gnd3wqrxZ3awYiQA
 
 ###
 POST http://127.0.0.1:8000/auth/reset-password/

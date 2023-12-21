@@ -83,7 +83,7 @@ class SignupViewTests(TestCase):
         self.assertFalse(User.objects.filter(email='testuser@example.com').exists())
 
         # Assert that the exception was logged or handled appropriately
-        # (This depends on how you handle exceptions in your code)
+        # (This depends on how I handle exceptions in my code)
 
         # Reset the side effect for subsequent tests
         mock_send_mail.side_effect = None
@@ -122,7 +122,7 @@ class SignupViewTests(TestCase):
 
 
 
-# Note: Adjust the 'test_token' in reverse('test_token') based on your actual URL configuration.
+# Note: Adjust the 'test_token' in reverse('test_token') based on my actual URL configuration.
 
     # def tearDown(self):
     #     if hasattr(self._outcome, 'errors'):
@@ -228,7 +228,7 @@ class TestTokenViews(APITestCase):
 class GoogleAuthTests(APITestCase):
 
     def test_google_auth_initiate(self):
-        url = reverse('google_auth_initiate')  # Replace with your actual URL configuration
+        url = reverse('google_auth_initiate')  # Replace with my actual URL configuration
 
         # Make a GET request to the google_auth_initiate endpoint
         response = self.client.get(url)
@@ -270,21 +270,21 @@ class ResetPasswordTests(APITestCase):
         self.user = User.objects.create_user(first_name='testuser',last_name='tope' , password='testpassword', email='testpasswordreset@example.com')
     
 
-    def reload_user(self):
-        self.user = User.objects.get(email=self.user.email)
-        self.user.can_reset_password=True
-        self.user.save()
-    
+    # def otp_and_can_reset_password(self):
+        # self.user = User.objects.get(email=self.user.email)
+
     def test_reset_password_valid_email(self):
         url = reverse('reset_password')
         data = {'email': 'testpasswordreset@example.com'}
         # Make a POST request to the reset_password endpoint
-        self.reload_user
         response = self.client.post(url, data, format='json')
+        
+        self.user.can_reset_password=True
         otp = secrets.token_urlsafe(20)
+        
         self.user.otp=otp
         self.user.save()
-    
+        
 
         
         # Check that the response status code is 200 OK
@@ -293,7 +293,35 @@ class ResetPasswordTests(APITestCase):
         # Check that the response contains the 'access' key
         self.assertIn('access', response.data['data'])
 
-        # Additional checks as needed
+        ###
+        # TEST PASSWORD RESET CONFIRM
+
+        
+        # self.otp_and_can_reset_password()  # Reload the user from the database
+        
+        self.user.refresh_from_db()
+
+        validTokenresponse = self.client.get(f'/auth/reset-password-confirm/?token={otp}')
+        invalidTokenresponse = self.client.get(f'/auth/reset-password-confirm/?token=fake_token')
+        
+        # Check that the response status code is 200 (OK)
+        self.assertEqual(validTokenresponse.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(invalidTokenresponse.status_code, status.HTTP_404_NOT_FOUND)
+
+        #TEST UPDATE PASSWORD
+        updateUrl = reverse('update_password')
+        data = {'email': 'testpasswordreset@example.com', 'password': 'newpassword123'}
+
+        response = self.client.post(updateUrl, data, format='json')
+        
+        self.assertEqual(response.data['data']['message'], 'passsword updated')
+
+        # Check that the user's password has been updated
+        updated_user = User.objects.get(email='testpasswordreset@example.com')
+        self.assertTrue(updated_user.check_password('newpassword123'))
+        # Check that the response status code is 200 OK
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+  # Additional checks as needed
 
     def test_reset_password_invalid_email(self):
         url = reverse('reset_password')
@@ -338,15 +366,24 @@ class ResetPasswordTests(APITestCase):
         self.assertEqual(response.data['message'], 'Invalid details, email not supplied')
 
 
-    def test_reset_password_confirm(self):
-        url = reverse('reset_password_confirm')
-        self.reload_user()  # Reload the user from the database
+    # def test_reset_password_confirm(self):
+    #     url = reverse('reset_password_confirm')
+    #     # self.otp_and_can_reset_password()  # Reload the user from the database
         
-        print('\n\n\n', self.user.can_reset_password, '\n\n\n' )
-        print('\n\n\n', self.user.otp, '\n\n\n' )
-        self.assertTrue(self.user.can_reset_password)
+    #     self.user.refresh_from_db()
+
+
+    #     self.assertTrue(self.user.can_reset_password)
+    #     self.assertTrue(User.objects.filter(otp=self.user.otp).exists())
+    #     print(User.objects.get(otp=self.otp).otp,User.objects.get(otp=self.otp).email)
+    #     print('\n\n\nuser.otp:' ,self.user.otp, ' \n\n\n otp:', self.otp)
+        
+    #     response = self.client.get(f'/auth/reset-password-confirm/?token={self.otp}/')
+    #     print(response.data)
+    #     # Check that the response status code is 200 (OK)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
 
 
     # Add more test cases for reset_password_confirm and update_password as needed
 
-# Note: Adjust the 'reset_password' in reverse() based on your actual URL configuration.
+# Note: Adjust the 'reset_password' in reverse() based on my actual URL configuration.
