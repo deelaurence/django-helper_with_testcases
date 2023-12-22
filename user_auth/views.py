@@ -89,7 +89,7 @@ def verify_email(request, token):
         verification.delete()
         return Response({'message': 'Email verified successfully.'})
     except EmailVerification.DoesNotExist:
-        return Response({'error': 'Invalid or expired verification token.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'token': 'verification token invalid or expired.'}, status=status.HTTP_400_BAD_REQUEST)
 
 
 @api_view(['GET'])

@@ -28,22 +28,49 @@ class SignupViewTests(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.signup_url = reverse('signup')
-        # self.user = User.objects.create_user(username='testuser', password='testpassword', email='test@example.com')
-
-    def test_successful_signup_and_mail_verification(self):
-        data = {
+        self.valid_signup_data={
             'email': 'newuser@example.com',
             'password': 'newpassword',
             'first_name': 'John',
             'last_name': 'Doe',
         }
-        response = self.client.post(self.signup_url, data, format='json')
         
-        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.failed_mail_signup_data = {
+            'email': 'testuser@example.com',
+            'password': 'newpassword',
+            'first_name': 'John',
+            'last_name': 'Doe',
+        }
 
-        user = User.objects.get(email='newuser@example.com')
+
+        existing_user = User.objects.create_user(
+            email='existinguser@example.com',
+            password='existingpassword',
+            first_name='Existing',
+            last_name='User',
+        )
+
+        self.exisiting_user_data = {
+            'email': 'existinguser@example.com',
+            'password': 'newpassword',
+            'first_name': 'John',
+            'last_name': 'Doe',
+        }
+
+        self.short_password_data = {
+            'email': 'shortpassword@example.com',
+            'password': 'short',
+            'first_name': 'John',
+            'last_name': 'Doe',
+        }
+
+    def test_successful_signup_and_mail_verification(self):
+        
+        response = self.client.post(self.signup_url, self.valid_signup_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        user = User.objects.get(email=self.valid_signup_data['email'])
         self.assertTrue(EmailVerification.objects.filter(user=user).exists())
-        self.assertTrue(User.objects.filter(email='newuser@example.com').exists())
+        self.assertTrue(User.objects.filter(email=self.valid_signup_data['email']).exists())
         verification = EmailVerification.objects.get(user=user)
 
         response = self.client.get(f'/auth/verify-email/{verification.token}/')
@@ -61,26 +88,27 @@ class SignupViewTests(TestCase):
             EmailVerification.objects.get(token=verification.token)
         # self.verification = EmailVerification.objects.create(user=user)
 
+        #EXPIRED/USED TOKEN
+        expired_token_response = self.client.get(f'/auth/verify-email/{verification.token}/')
+        # Check that the response status code is 400
+        self.assertEqual(expired_token_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(expired_token_response.data['message'], 'Invalid token, verification token invalid or expired.')
+
+
+
     @patch('user_auth.views.send_mail')
     def test_failed_email_sending(self, mock_send_mail):
         # Configure the side effect to raise an exception
         mock_send_mail.side_effect = Exception("Simulated email sending failure")
 
         # Call the signup view
-        url = reverse('signup')
-        data = {
-            'email': 'testuser@example.com',
-            'password': 'newpassword',
-            'first_name': 'John',
-            'last_name': 'Doe',
-        }
-        response = self.client.post(url, data, format='json')
+        response = self.client.post(self.signup_url, self.failed_mail_signup_data, format='json')
 
         # Assert that the response indicates a failure
         self.assertEqual(response.status_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         # Assert that the user was not created
-        self.assertFalse(User.objects.filter(email='testuser@example.com').exists())
+        self.assertFalse(User.objects.filter(email=self.failed_mail_signup_data['email']).exists())
 
         # Assert that the exception was logged or handled appropriately
         # (This depends on how I handle exceptions in my code)
@@ -90,33 +118,13 @@ class SignupViewTests(TestCase):
 
     def test_duplicate_email_signup(self):
         # Create a user with the same email as in the previous test
-        existing_user = User.objects.create_user(
-            email='existinguser@example.com',
-            password='existingpassword',
-            first_name='Existing',
-            last_name='User',
-        )
-
-        data = {
-            'email': 'existinguser@example.com',
-            'password': 'newpassword',
-            'first_name': 'John',
-            'last_name': 'Doe',
-        }
-        response = self.client.post(self.signup_url, data, format='json')
+        response = self.client.post(self.signup_url, self.exisiting_user_data, format='json')
         print(response.data)
         self.assertEqual(response.status_code, status.HTTP_409_CONFLICT)
         self.assertIn('user already exist', response.data.get('message', ''))
 
     def test_short_password_signup(self):
-        data = {
-            'email': 'shortpassword@example.com',
-            'password': 'short',
-            'first_name': 'John',
-            'last_name': 'Doe',
-        }
-        response = self.client.post(self.signup_url, data, format='json')
-
+        response = self.client.post(self.signup_url, self.short_password_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn('password should be higher than 6 character', response.data.get('message', ''))
 
@@ -150,7 +158,11 @@ class SignupViewTests(TestCase):
 class TestTokenViews(APITestCase):
 
     def setUp(self):
-        self.user = User.objects.create_user(first_name='testuser', last_name='lastname', password='testpassword', email='test@example.com')
+        self.user = User.objects.create_user(
+            first_name='testuser', 
+            last_name='lastname', 
+            password='testpassword', 
+            email='test@example.com')
         self.url_obtain = reverse('token_obtain_pair')
         self.url_refresh = reverse('token_refresh')
         self.url_protected_view = reverse('protected_view')
@@ -269,10 +281,6 @@ class ResetPasswordTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(first_name='testuser',last_name='tope' , password='testpassword', email='testpasswordreset@example.com')
     
-
-    # def otp_and_can_reset_password(self):
-        # self.user = User.objects.get(email=self.user.email)
-
     def test_reset_password_valid_email(self):
         url = reverse('reset_password')
         data = {'email': 'testpasswordreset@example.com'}
@@ -366,24 +374,4 @@ class ResetPasswordTests(APITestCase):
         self.assertEqual(response.data['message'], 'Invalid details, email not supplied')
 
 
-    # def test_reset_password_confirm(self):
-    #     url = reverse('reset_password_confirm')
-    #     # self.otp_and_can_reset_password()  # Reload the user from the database
-        
-    #     self.user.refresh_from_db()
-
-
-    #     self.assertTrue(self.user.can_reset_password)
-    #     self.assertTrue(User.objects.filter(otp=self.user.otp).exists())
-    #     print(User.objects.get(otp=self.otp).otp,User.objects.get(otp=self.otp).email)
-    #     print('\n\n\nuser.otp:' ,self.user.otp, ' \n\n\n otp:', self.otp)
-        
-    #     response = self.client.get(f'/auth/reset-password-confirm/?token={self.otp}/')
-    #     print(response.data)
-    #     # Check that the response status code is 200 (OK)
-    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
-
-
-    # Add more test cases for reset_password_confirm and update_password as needed
-
-# Note: Adjust the 'reset_password' in reverse() based on my actual URL configuration.
+    
