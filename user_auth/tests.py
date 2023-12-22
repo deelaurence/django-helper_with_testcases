@@ -154,7 +154,7 @@ class SignupViewTests(TestCase):
     #                 print("\n\n%s: %s\n     %s" % (typ, self.id(), msg))
 
 
-#Inheriting from APITestCase so as to have access to force_authenticate
+# #Inheriting from APITestCase so as to have access to force_authenticate
 class TestTokenViews(APITestCase):
 
     def setUp(self):
@@ -239,6 +239,7 @@ class TestTokenViews(APITestCase):
 
 class GoogleAuthTests(APITestCase):
 
+   
     def test_google_auth_initiate(self):
         url = reverse('google_auth_initiate')  # Replace with my actual URL configuration
 
@@ -251,9 +252,11 @@ class GoogleAuthTests(APITestCase):
         # Check that the response data contains the authorization URL
         expected_url_part = 'https://accounts.google.com/o/oauth2/auth'
         actual_url = response.data['data']
-        self.assertIn(expected_url_part, actual_url, f"Expected '{expected_url_part}' in '{actual_url}'")
+        self.assertIn(expected_url_part, actual_url)
         parsed_url = urlparse(actual_url)
         actual_params = parse_qs(parsed_url.query)
+
+        generated_state=actual_params['state'][0]
         
         
         expected_params = [
@@ -264,17 +267,24 @@ class GoogleAuthTests(APITestCase):
             'state',
         ]
 
-        session= self.client.session
+        
 
-        session['google_auth_state2'] = 'mock_state'
-        session.save()
+       
         # print('\n\n\n\n', session['google_auth_state2'],'\n\n\n')
         # Check that all expected query parameters are present in the actual URL
         for param in expected_params:
             self.assertIn(param, actual_params, f"Expected '{param}' in query parameters")
             self.assertTrue(actual_params[param], f"Expected non-empty value for query parameter '{param}'")
+        
+        
+        url_google_generates_after_consent=f'http://localhost:8000/auth/google/redirected/?state={generated_state}&code=4%2F0AfJohXmrad0AHj3ezdbh0kSXy6MMLG1Gi3Ag2vVeZ71VUOxa-H3-FVW6KqrtfBMzdCDO1g&scope=email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+openid&authuser=0&prompt=none'
+        callback_response=self.client.get(url_google_generates_after_consent)
 
-
+        #if all goes well, one thing would definetely fail
+        #the code parameter would have expired because it was generated
+        #dec-22-2023
+        self.assertEqual(callback_response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(callback_response.data['message'], 'Invalid exchange, Failed to exchange code for tokens')
 
 class ResetPasswordTests(APITestCase):
 

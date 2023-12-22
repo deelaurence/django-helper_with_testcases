@@ -117,87 +117,94 @@ def google_auth_initiate(request):
 
     state = secrets.token_urlsafe(16)
     request.session['google_auth_state2'] = state
+
+
     # Build the authorization URL
     auth_url = f'{GOOGLE_AUTHORIZATION_URL}?client_id={GOOGLE_CLIENT_ID}&redirect_uri={GOOGLE_REDIRECT_URI}&response_type=code&scope=email%20profile&state={state}'
-    print("views stage")
     return Response(auth_url)
 
 @csrf_exempt
 @api_view(('GET',))
 @renderer_classes((JSONRenderer,))
 def google_auth_callback(request):
-    
-    # Get the authorization code and state from the request data
-    code = request.GET.get('code')
-    state = request.GET.get('state')
-    # Verify that code and state are present
-    if not code or not state:
-        return Response({'parameters':'Missing code or state parameters'},403)
+    try:
 
-    # Verify that the state matches the one stored in the session
-    stored_state = request.session.get('google_auth_state2')
-    
-    if state != stored_state:
-        return Response({'state':'State mismatch, make sure request is initiated and completed with the same client and that the server has sucesfully set the sessionId cookie on the client'},403)
+        # Get the authorization code and state from the request data
+        code = request.GET.get('code')
+        state = request.GET.get('state')
+        # Verify that code and state are present
 
-    # Clear the state from the session to prevent replay attacks
-    del request.session['google_auth_state2']
-    # Exchange the code for tokens
-    token_data = {
-        'code': code,
-        'client_id': GOOGLE_CLIENT_ID,
-        'client_secret': env('GOOGLE_CLIENT_SECRET'),
-        'redirect_uri': GOOGLE_REDIRECT_URI,
-        'grant_type': 'authorization_code'
-    }
 
-    response = requests.post(GOOGLE_TOKEN_URL, data=token_data)
+        if not code or not state:
+            return Response({'parameters':'Missing code or state parameters'},403)
 
-    if response.status_code == 200:
-        tokens = response.json()
-        access_token = tokens.get('access_token')
+        # Verify that the state matches the one stored in the session
+        stored_state = request.session.get('google_auth_state2')
+        
+        if state != stored_state:
+            return Response({'state':'State mismatch, make sure request is initiated and completed with the same client and that the server has sucesfully set the sessionId cookie on the client'},403)
 
-        # Use the access token to get user information from Google
-        user_info_response = requests.get('https://www.googleapis.com/oauth2/v1/userinfo', headers={'Authorization': f'Bearer {access_token}'})
+        # Clear the state from the session to prevent replay attacks
+        del request.session['google_auth_state2']
+        # Exchange the code for tokens
+        token_data = {
+            'code': code,
+            'client_id': GOOGLE_CLIENT_ID,
+            'client_secret': env('GOOGLE_CLIENT_SECRET'),
+            'redirect_uri': GOOGLE_REDIRECT_URI,
+            'grant_type': 'authorization_code'
+        }
 
-        if user_info_response.status_code == 200:
-            user_info = user_info_response.json()
-            user_email = user_info.get('email')
-            # print(user_info)
+        response = requests.post(GOOGLE_TOKEN_URL, data=token_data)
 
-            user, created = User.objects.get_or_create(email=user_email, defaults={'email': user_email})
-            if created:
-                # generatePassword = secrets.token_urlsafe(12)
-                # Set a dummy password for the user
-                # user.set_password(generatePassword)
-                user.is_active=True
-                user.is_google=True
-                user.first_name=user_info.get('given_name')
-                user.last_name=user_info.get('family_name')
+        if response.status_code == 200:
+            tokens = response.json()
+            access_token = tokens.get('access_token')
+
+            # Use the access token to get user information from Google
+            user_info_response = requests.get('https://www.googleapis.com/oauth2/v1/userinfo', headers={'Authorization': f'Bearer {access_token}'})
+
+            if user_info_response.status_code == 200:
+                user_info = user_info_response.json()
+                user_email = user_info.get('email')
+                # print(user_info)
+
+                user, created = User.objects.get_or_create(email=user_email, defaults={'email': user_email})
+                if created:
+                    # generatePassword = secrets.token_urlsafe(12)
+                    # Set a dummy password for the user
+                    # user.set_password(generatePassword)
+                    user.is_active=True
+                    user.is_google=True
+                    user.first_name=user_info.get('given_name')
+                    user.last_name=user_info.get('family_name')
+                    user.save()
+                # Assuming you have a profile model associated with the user
+                # You can create a profile for the user if not already created
+                # profile, created = UserProfile.objects.get_or_create(user=user)
+                generatePassword = secrets.token_urlsafe(12)
+                    # Set a dummy password for the user
+                user.set_password(generatePassword)
                 user.save()
-            # Assuming you have a profile model associated with the user
-            # You can create a profile for the user if not already created
-            # profile, created = UserProfile.objects.get_or_create(user=user)
-            generatePassword = secrets.token_urlsafe(12)
-                # Set a dummy password for the user
-            user.set_password(generatePassword)
-            user.save()
-            # Generate tokens for the user (use Django Rest Framework JWT or SimpleJWT)
-            tokens_serializer = TokenObtainPairSerializer(data={'email': user_email, 'password': generatePassword})
-            tokens_serializer.is_valid(raise_exception=True)
-            tokens = tokens_serializer.validated_data
+                # Generate tokens for the user (use Django Rest Framework JWT or SimpleJWT)
+                tokens_serializer = TokenObtainPairSerializer(data={'email': user_email, 'password': generatePassword})
+                tokens_serializer.is_valid(raise_exception=True)
+                tokens = tokens_serializer.validated_data
 
-            # You can return the tokens in the response
-            # return Response({'access': tokens['access'], 'refresh': tokens['refresh']})
-            redirect_url = f'http://example.com/redirect?access={tokens["access"]}&refresh={tokens["refresh"]}'
+                # You can return the tokens in the response
+                # return Response({'access': tokens['access'], 'refresh': tokens['refresh']})
+                redirect_url = f'http://example.com/redirect?access={tokens["access"]}&refresh={tokens["refresh"]}'
 
-            # Redirect the user to the client-side URL
-            return redirect(redirect_url)
-            # return Response({'email': user_email})
+                # Redirect the user to the client-side URL
+                return redirect(redirect_url)
+                # return Response({'email': user_email})
+            else:
+                return Response({'process': 'Failed to retrieve user information from Google'}, status=user_info_response.status_code)
         else:
-            return Response({'process': 'Failed to retrieve user information from Google'}, status=user_info_response.status_code)
-    else:
-        return Response({'exchange': 'Failed to exchange code for tokens'}, status=response.status_code)
+            return Response({'exchange': 'Failed to exchange code for tokens'}, status=response.status_code)
+    except Exception as e:
+        # print(f'Something went wrong during registration {e}')
+        return Response({'request': 'something went wrong during google sign in'}, status=500)
 
 
 from rest_framework_simplejwt.tokens import RefreshToken
